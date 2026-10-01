@@ -1,0 +1,17 @@
+{
+  "scenario": "actions",
+  "sha": "0b31e22d33c17039295b86a6ae0919cc95e90c63",
+  "pipelinerun": "release-0b31e22-7549",
+  "trigger": "failover",
+  "shipped_by": "tekton",
+  "rto_seconds": 96,
+  "target_seconds": 900,
+  "met_target": true,
+  "timeline": {
+    "outage": 1790807484,
+    "push": 1790807488,
+    "failover": 1790807551,
+    "pipeline_start": 1790807551,
+    "live": 1790807584
+  }
+}

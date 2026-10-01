@@ -1,0 +1,19 @@
+# Webhook relay: GitHub -> smee.io channel -> this pod -> dr-controller.
+# Scaling this to 0 is how the drill simulates a GitHub Webhooks outage.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: webhook-relay, namespace: dr-system }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: webhook-relay } }
+  template:
+    metadata: { labels: { app: webhook-relay } }
+    spec:
+      terminationGracePeriodSeconds: 1   # node as PID 1 ignores SIGTERM; don't let it keep relaying
+      containers:
+        - name: smee
+          image: kind-registry:5000/smee-client:dev
+          env:
+            - name: SMEE_URL
+              valueFrom: { secretKeyRef: { name: github-app, key: smee-url } }
+            - { name: TARGET, value: http://dr-controller.dr-system.svc:8080/webhook }

@@ -1,0 +1,28 @@
+# Primary release path. Runs on self-hosted runners (ARC) inside the same
+# cluster Tekton lives in — which is exactly why it doesn't help when the
+# Actions scheduler stops handing out jobs.
+name: release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-prod
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: dr-demo-runners   # ARC runner scale set
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0       # deploy.sh needs history for the stale-deploy guard
+      - name: build
+        run: ./ci/build.sh
+      - name: deploy
+        run: ./ci/deploy.sh
+        env:
+          DEPLOYED_BY: github-actions
+          DEMO_API_KEY: ${{ secrets.DEMO_API_KEY }}

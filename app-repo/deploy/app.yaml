@@ -1,0 +1,37 @@
+# Rendered by ci/deploy.sh (placeholders: __IMAGE__ __GIT_SHA__ __DEPLOYED_BY__ __DEPLOYED_AT__)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dr-demo-app
+  annotations:
+    dr.demo/git-sha: "__GIT_SHA__"
+    dr.demo/deployed-by: "__DEPLOYED_BY__"
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: dr-demo-app } }
+  template:
+    metadata:
+      labels: { app: dr-demo-app }
+    spec:
+      containers:
+        - name: app
+          image: __IMAGE__
+          ports: [{ containerPort: 8080 }]
+          env:
+            - { name: GIT_SHA, value: "__GIT_SHA__" }
+            - { name: DEPLOYED_BY, value: "__DEPLOYED_BY__" }
+            - { name: DEPLOYED_AT, value: "__DEPLOYED_AT__" }
+          envFrom:
+            - secretRef: { name: dr-demo-app-secrets }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            periodSeconds: 2
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dr-demo-app
+spec:
+  type: NodePort
+  selector: { app: dr-demo-app }
+  ports: [{ port: 80, targetPort: 8080, nodePort: 30088 }]

@@ -1,0 +1,13 @@
+# gha-runner-scale-set values: self-hosted runners in the same cluster as Tekton.
+githubConfigSecret: arc-github-app
+runnerScaleSetName: dr-demo-runners   # workflow: runs-on: dr-demo-runners
+minRunners: 1                         # a warm runner, so the happy path is fast
+maxRunners: 2
+template:
+  spec:
+    serviceAccountName: dr-demo-runner   # bound to the demo-prod deployer Role
+    containers:
+      - name: runner
+        image: kind-registry:5000/actions-runner:dev
+        imagePullPolicy: Always
+        command: ["/home/runner/run.sh"]

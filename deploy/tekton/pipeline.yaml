@@ -1,0 +1,35 @@
+# The DR release path: clone -> build -> deploy, running ci/build.sh and
+# ci/deploy.sh from the app repo exactly like .github/workflows/release.yml.
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata: { name: release, namespace: ci }
+spec:
+  params:
+    - { name: repo-url, type: string }
+    - { name: revision, type: string }
+  workspaces:
+    - { name: source }
+    - { name: git-credentials }
+  tasks:
+    - name: clone
+      taskRef: { name: git-clone }
+      params:
+        - { name: repo-url, value: $(params.repo-url) }
+        - { name: revision, value: $(params.revision) }
+      workspaces:
+        - { name: output, workspace: source }
+        - { name: git-credentials, workspace: git-credentials }
+    - name: build
+      runAfter: [clone]
+      taskRef: { name: ci-script }
+      params:
+        - { name: script, value: ci/build.sh }
+        - { name: git-sha, value: $(tasks.clone.results.commit) }
+      workspaces: [{ name: source, workspace: source }]
+    - name: deploy
+      runAfter: [build]
+      taskRef: { name: ci-script }
+      params:
+        - { name: script, value: ci/deploy.sh }
+        - { name: git-sha, value: $(tasks.clone.results.commit) }
+      workspaces: [{ name: source, workspace: source }]

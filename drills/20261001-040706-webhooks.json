@@ -1,0 +1,17 @@
+{
+  "scenario": "webhooks",
+  "sha": "ee4d8c22d9b900a77969593b6973a06badbd4868",
+  "pipelinerun": "release-ee4d8c2-7790",
+  "trigger": "poller",
+  "shipped_by": "tekton",
+  "rto_seconds": 60,
+  "target_seconds": 900,
+  "met_target": true,
+  "timeline": {
+    "outage": 1790807735,
+    "push": 1790807766,
+    "failover": 1790807766,
+    "pipeline_start": 1790807791,
+    "live": 1790807826
+  }
+}

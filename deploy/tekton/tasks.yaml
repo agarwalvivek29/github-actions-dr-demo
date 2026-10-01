@@ -1,0 +1,57 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata: { name: git-clone, namespace: ci }
+spec:
+  description: Clone with the GitHub App installation token (the DR path's stand-in for GITHUB_TOKEN).
+  params:
+    - { name: repo-url, type: string }
+    - { name: revision, type: string }
+  workspaces:
+    - { name: output }
+    - { name: git-credentials, readOnly: true }
+  results:
+    - { name: commit }
+  steps:
+    - name: clone
+      image: kind-registry:5000/ci-tools:dev
+      env: [{ name: HOME, value: /tekton/home }]
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        token=$(cat "$(workspaces.git-credentials.path)/token")
+        auth="Authorization: basic $(printf 'x-access-token:%s' "$token" | base64 -w0)"
+        cd "$(workspaces.output.path)"
+        rm -rf src && git init -q src && cd src
+        git remote add origin "$(params.repo-url)"
+        # Full history: deploy.sh's stale-deploy guard needs ancestry.
+        git -c http.extraHeader="$auth" fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
+        git checkout -q "$(params.revision)"
+        git log -1 --format='%h %s (%an)'
+        printf '%s' "$(git rev-parse HEAD)" > "$(results.commit.path)"
+---
+apiVersion: tekton.dev/v1
+kind: Task
+metadata: { name: ci-script, namespace: ci }
+spec:
+  description: Run one of the repo's ci/*.sh scripts — the same ones GitHub Actions runs.
+  params:
+    - { name: script, type: string }
+    - { name: git-sha, type: string }
+  workspaces:
+    - { name: source }
+  steps:
+    - name: run
+      image: kind-registry:5000/ci-tools:dev
+      workingDir: $(workspaces.source.path)/src
+      env:
+        - { name: HOME, value: /tekton/home }
+        - { name: GIT_SHA, value: $(params.git-sha) }
+        - { name: DEPLOYED_BY, value: tekton }
+        - { name: GOCACHE, value: $(workspaces.source.path)/.cache/go-build }
+        - { name: GOMODCACHE, value: $(workspaces.source.path)/.cache/go-mod }
+        # Lived only in GitHub Secrets before DR; now synced here too (scripts/sync-secrets.sh).
+        - name: DEMO_API_KEY
+          valueFrom: { secretKeyRef: { name: release-secrets, key: DEMO_API_KEY, optional: true } }
+      script: |
+        #!/usr/bin/env bash
+        exec "./$(params.script)"

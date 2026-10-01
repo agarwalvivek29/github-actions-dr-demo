@@ -1,0 +1,21 @@
+# Local cluster for the GitHub Actions -> Tekton DR demo.
+# Host ports:
+#   8088 -> demo app (what "prod" looks like)
+#   9097 -> Tekton Dashboard
+#   9090 -> dr-controller (state / manual trigger)
+#   9091 -> fake GitHub status page (outage simulator)
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: gha-dr
+containerdConfigPatches:
+  # Let containerd resolve registries from /etc/containerd/certs.d (see scripts/up.sh)
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - { containerPort: 30088, hostPort: 8088 }
+      - { containerPort: 30097, hostPort: 9097 }
+      - { containerPort: 30090, hostPort: 9090 }
+      - { containerPort: 30091, hostPort: 9091 }

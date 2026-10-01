@@ -1,0 +1,31 @@
+# One deploy role in prod, bound to BOTH release paths. If only the GHA runner
+# can deploy, you don't have a second path — you have a second YAML file.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata: { name: deployer, namespace: demo-prod }
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services", "secrets", "configmaps"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: dr-demo-runner, namespace: arc-runners }
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: { name: release-bot, namespace: ci }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata: { name: deployer, namespace: demo-prod }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: deployer }
+subjects:
+  - { kind: ServiceAccount, name: dr-demo-runner, namespace: arc-runners }  # GitHub Actions
+  - { kind: ServiceAccount, name: release-bot, namespace: ci }              # Tekton
